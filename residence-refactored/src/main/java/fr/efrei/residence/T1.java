@@ -5,7 +5,7 @@ import java.util.List;
 public class T1 extends Logement {
 
     public T1(String numero, double surface, int etage, boolean meuble) {
-        super(numero, "T1", surface, etage, meuble);
+        super(numero, TypeLogement.T1, surface, etage, meuble);
     }
 
     public void ajouterColocataire(Etudiant e) {
@@ -21,14 +21,13 @@ public class T1 extends Logement {
     }
 
     public int getNombrePlaces() {
-        return 1;
+        return CAPACITE_INDIVIDUELLE;
     }
 
     public double getSurfaceBalcon() {
-        return 0; // pas de balcon non plus mais ça évite les exceptions
+        return 0;
     }
 
     public void nettoyerPartiesCommunes() {
-        // rien à faire
     }
 }
