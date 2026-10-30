@@ -7,7 +7,7 @@ public class T2 extends Logement {
     private double surfaceBalcon;
 
     public T2(String numero, double surface, int etage, boolean meuble, double surfaceBalcon) {
-        super(numero, "T2", surface, etage, meuble);
+        super(numero, TypeLogement.T2, surface, etage, meuble);
         this.surfaceBalcon = surfaceBalcon;
     }
 
@@ -24,7 +24,7 @@ public class T2 extends Logement {
     }
 
     public int getNombrePlaces() {
-        return 1;
+        return CAPACITE_INDIVIDUELLE;
     }
 
     public double getSurfaceBalcon() {
