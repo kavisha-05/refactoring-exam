@@ -3,13 +3,26 @@ package fr.efrei.residence;
 import java.util.ArrayList;
 import java.util.List;
 
-public class EmailService {
+public class EmailService implements CanalNotification {
 
     public static final String SMTP_HOST = "smtp.campusvert.fr";
     public static final String EXPEDITEUR = "gestion@campusvert.fr";
 
     // garde une trace des emails envoyés (demandé par l'administration)
     public static List<String[]> journal = new ArrayList<String[]>();
+
+    @Override
+    public void envoyer(Etudiant etudiant, String sujet, String message) {
+        envoyer(etudiant.getEmail(), sujet, message);
+    }
+
+    @Override
+    public void relancer(Bail bail) {
+        Etudiant etudiant = bail.getEtudiant();
+        envoyer(etudiant, "RELANCE - loyer impayé",
+                "Bonjour " + etudiant.getPrenom() + ", il reste " + Utils.euros(bail.soldeDu)
+                        + " à régler sur le bail " + bail.getId() + ".");
+    }
 
     public static boolean envoyer(String destinataire, String sujet, String corps) {
         try {
