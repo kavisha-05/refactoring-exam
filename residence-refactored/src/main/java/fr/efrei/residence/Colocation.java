@@ -53,6 +53,11 @@ public class Colocation extends Logement {
         return places;
     }
 
+    @Override
+    public int getNombreOccupants() {
+        return colocataires.size();
+    }
+
     public double getSurfaceBalcon() {
         throw new UnsupportedOperationException("Les colocations n'ont pas de balcon");
     }

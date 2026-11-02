@@ -32,6 +32,10 @@ public abstract class Logement implements ILogement {
         return occupant == null;
     }
 
+    public int getNombreOccupants() {
+        return estLibre() ? 0 : CAPACITE_INDIVIDUELLE;
+    }
+
     public boolean estAccessiblePMR() {
         return etage == REZ_DE_CHAUSSEE || numero.startsWith(BATIMENT_AVEC_ASCENSEUR);
     }
