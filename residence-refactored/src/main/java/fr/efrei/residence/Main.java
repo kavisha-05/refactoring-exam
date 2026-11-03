@@ -2,12 +2,29 @@ package fr.efrei.residence;
 
 import java.time.LocalDate;
 import java.util.EnumSet;
+import java.util.Map;
 
 public class Main {
 
     public static void main(String[] args) {
-        Residence.initialiser();
-        GestionResidence gestion = new GestionResidence();
+        System.out.println("[DB] Connexion à jdbc:postgresql://db.campusvert.local:5432/residence");
+        EtudiantRepository etudiants = new EtudiantsEnMemoire();
+        BailRepository baux = new BauxEnMemoire();
+        ParcLogements parc = new ParcEnMemoire();
+        JournalNotifications journal = new JournalNotificationsEnMemoire();
+        CanauxNotification canaux = new FabriqueNotification(Map.of(
+                Canal.EMAIL, new EmailService(journal),
+                Canal.SMS, new SmsService(journal),
+                Canal.COURRIER, new CourrierService(journal)));
+        NotificationsResidence notifications = new ServiceNotifications(canaux);
+        CalculLoyer calculateur = new CalculateurLoyer(new AssemblageLoyer());
+        Inscription inscriptions = new ServiceInscription(etudiants);
+        Attribution attribution = new ServiceAttribution(parc, baux, calculateur, notifications);
+        CycleBail cycle = new ServiceCycleBail(baux, notifications);
+        Relances relances = new ServiceRelances(baux, canaux);
+        RapportResidence rapports = new ServiceRapport(parc, baux, journal);
+        GenerateurQuittance quittances = new ServiceQuittance();
+        GestionResidence gestion = new GestionResidence(inscriptions, attribution, cycle, relances, rapports);
 
         gestion.ajouterLogement(TypeLogement.STUDIO, "C002", 16, 0, false, 0);
         gestion.ajouterLogement("DUPLEX", "C003", 60, 1, true, 0);
@@ -65,8 +82,8 @@ public class Main {
         gestion.payerLoyer(bC.getId(), "2026-10", LocalDate.of(2026, 10, 1), 1000);
 
         System.out.println();
-        System.out.println(bD.genererQuittance("2026-09"));
-        System.out.println(bA.genererQuittance("2026-10"));
+        System.out.println(quittances.generer(bD, "2026-09"));
+        System.out.println(quittances.generer(bA, "2026-10"));
 
         System.out.println();
         gestion.relancerImpayes();

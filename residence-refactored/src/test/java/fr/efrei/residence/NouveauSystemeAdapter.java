@@ -11,9 +11,9 @@ import fr.efrei.residence.contrat.SystemeResidence;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
@@ -24,21 +24,32 @@ import java.util.Set;
 public class NouveauSystemeAdapter implements SystemeResidence {
 
     private GestionResidence gestion;
+    private EtudiantRepository etudiants;
+    private BailRepository baux;
+    private ParcLogements parc;
+    private JournalNotifications journal;
+    private CalculLoyer calculateur;
+    private GenerateurQuittance quittances;
 
     @Override
     public void reinitialiser() {
-        Database.getInstance();
-        Database.etudiants.clear();
-        Database.baux.clear();
-        EmailService.journal.clear();
-        SmsService.journal.clear();
-        CourrierService.journal.clear();
-        SmsService.compteurSms = 0;
-        CourrierService.totalAffranchissement = 0;
-        Etudiant.compteur = 0;
-        GestionResidence.compteurBail = 0;
-        Residence.initialiser();
-        gestion = new GestionResidence();
+        etudiants = new EtudiantsEnMemoire();
+        baux = new BauxEnMemoire();
+        parc = new ParcEnMemoire();
+        journal = new JournalNotificationsEnMemoire();
+        CanauxNotification canaux = new FabriqueNotification(Map.of(
+                Canal.EMAIL, new EmailService(journal),
+                Canal.SMS, new SmsService(journal),
+                Canal.COURRIER, new CourrierService(journal)));
+        NotificationsResidence notifications = new ServiceNotifications(canaux);
+        calculateur = new CalculateurLoyer(new AssemblageLoyer());
+        Inscription inscriptions = new ServiceInscription(etudiants);
+        Attribution attribution = new ServiceAttribution(parc, baux, calculateur, notifications);
+        CycleBail cycle = new ServiceCycleBail(baux, notifications);
+        Relances relances = new ServiceRelances(baux, canaux);
+        RapportResidence rapports = new ServiceRapport(parc, baux, journal);
+        quittances = new ServiceQuittance();
+        gestion = new GestionResidence(inscriptions, attribution, cycle, relances, rapports);
     }
 
     @Override
@@ -56,7 +67,7 @@ public class NouveauSystemeAdapter implements SystemeResidence {
 
     @Override
     public Optional<EtatLogement> logement(String numero) {
-        Logement l = Residence.trouver(numero);
+        Logement l = parc.trouver(numero);
         if (l == null) {
             return Optional.empty();
         }
@@ -66,17 +77,17 @@ public class NouveauSystemeAdapter implements SystemeResidence {
 
     @Override
     public OptionalDouble devisLoyer(DemandeDevis d) {
-        Logement l = Residence.trouver(d.numeroLogement());
+        Logement l = parc.trouver(d.numeroLogement());
         if (l == null) {
             return OptionalDouble.empty();
         }
-        return OptionalDouble.of(new CalculateurLoyer().calculerLoyer(l, Profil.valueOf(d.profil().name()), d.echelonBourse(),
+        return OptionalDouble.of(calculateur.calculerLoyer(l, Profil.valueOf(d.profil().name()), d.echelonBourse(),
                 options(d.options())));
     }
 
     @Override
     public Optional<String> attribuer(DemandeAttribution d) {
-        Etudiant e = etudiant(d.refEtudiant());
+        Etudiant e = etudiants.trouverParId(d.refEtudiant());
         if (e == null) {
             return Optional.empty();
         }
@@ -86,7 +97,7 @@ public class NouveauSystemeAdapter implements SystemeResidence {
 
     @Override
     public Optional<EtatBail> consulter(String idBail) {
-        Bail b = Database.baux.get(idBail);
+        Bail b = baux.trouverParId(idBail);
         if (b == null) {
             return Optional.empty();
         }
@@ -122,7 +133,7 @@ public class NouveauSystemeAdapter implements SystemeResidence {
 
     @Override
     public Optional<String> quittance(String idBail, YearMonth mois) {
-        return Optional.ofNullable(Database.baux.get(idBail)).map(b -> b.genererQuittance(mois.toString()));
+        return Optional.ofNullable(baux.trouverParId(idBail)).map(b -> quittances.generer(b, mois.toString()));
     }
 
     @Override
@@ -137,17 +148,11 @@ public class NouveauSystemeAdapter implements SystemeResidence {
 
     @Override
     public List<Notification> notifications() {
-        List<Notification> notifications = new ArrayList<>();
-        for (String[] email : EmailService.journal) {
-            notifications.add(new Notification(fr.efrei.residence.contrat.Canal.EMAIL, email[0], email[1]));
-        }
-        for (String[] sms : SmsService.journal) {
-            notifications.add(new Notification(fr.efrei.residence.contrat.Canal.SMS, sms[0], sms[1]));
-        }
-        for (String[] courrier : CourrierService.journal) {
-            notifications.add(new Notification(fr.efrei.residence.contrat.Canal.COURRIER, courrier[0], courrier[1]));
-        }
-        return notifications;
+        return journal.consulter().stream()
+                .map(notification -> new Notification(
+                        fr.efrei.residence.contrat.Canal.valueOf(notification.canal().name()),
+                        notification.destinataire(), notification.contenu()))
+                .toList();
     }
 
     private static Set<Option> options(Set<fr.efrei.residence.contrat.Option> optionsContrat) {
@@ -156,12 +161,5 @@ public class NouveauSystemeAdapter implements SystemeResidence {
             options.add(Option.valueOf(option.name()));
         }
         return options;
-    }
-
-    private static Etudiant etudiant(String ref) {
-        for (Etudiant e : Database.etudiants.values()) {
-            if (e.getId().equals(ref)) return e;
-        }
-        return null;
     }
 }

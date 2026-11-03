@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class AssemblageLoyerTest {
     private static final double PRECISION = 1e-9;
     private final AssemblageLoyer assemblage = new AssemblageLoyer();
-    private final CalculateurLoyer calculateur = new CalculateurLoyer();
+    private final CalculateurLoyer calculateur = new CalculateurLoyer(new AssemblageLoyer());
 
     @Test
     void sansOptionNiMajorationConserveLeLoyerDeBase() {
