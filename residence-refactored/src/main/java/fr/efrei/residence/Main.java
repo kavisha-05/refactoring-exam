@@ -2,7 +2,6 @@ package fr.efrei.residence;
 
 import java.time.LocalDate;
 import java.util.EnumSet;
-import java.util.Map;
 
 public class Main {
 
@@ -12,10 +11,7 @@ public class Main {
         BailRepository baux = new BauxEnMemoire();
         ParcLogements parc = new ParcEnMemoire();
         JournalNotifications journal = new JournalNotificationsEnMemoire();
-        CanauxNotification canaux = new FabriqueNotification(Map.of(
-                Canal.EMAIL, new EmailService(journal),
-                Canal.SMS, new SmsService(journal),
-                Canal.COURRIER, new CourrierService(journal)));
+        CanauxNotification canaux = FabriqueNotification.avecCanauxStandards(journal);
         NotificationsResidence notifications = new ServiceNotifications(canaux);
         CalculLoyer calculateur = new CalculateurLoyer(new AssemblageLoyer());
         Inscription inscriptions = new ServiceInscription(etudiants);

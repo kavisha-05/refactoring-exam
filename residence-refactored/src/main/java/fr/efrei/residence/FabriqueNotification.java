@@ -9,6 +9,13 @@ public final class FabriqueNotification implements CanauxNotification {
         this.canaux = Map.copyOf(canaux);
     }
 
+    public static FabriqueNotification avecCanauxStandards(JournalNotifications journal) {
+        return new FabriqueNotification(Map.of(
+                Canal.EMAIL, new EmailService(journal),
+                Canal.SMS, new SmsService(journal),
+                Canal.COURRIER, new CourrierService(journal)));
+    }
+
     @Override
     public CanalNotification creer(Canal canal) {
         CanalNotification notification = canaux.get(canal);

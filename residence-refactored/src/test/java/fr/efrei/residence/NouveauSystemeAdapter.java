@@ -13,7 +13,6 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
@@ -37,10 +36,7 @@ public class NouveauSystemeAdapter implements SystemeResidence {
         baux = new BauxEnMemoire();
         parc = new ParcEnMemoire();
         journal = new JournalNotificationsEnMemoire();
-        CanauxNotification canaux = new FabriqueNotification(Map.of(
-                Canal.EMAIL, new EmailService(journal),
-                Canal.SMS, new SmsService(journal),
-                Canal.COURRIER, new CourrierService(journal)));
+        CanauxNotification canaux = FabriqueNotification.avecCanauxStandards(journal);
         NotificationsResidence notifications = new ServiceNotifications(canaux);
         calculateur = new CalculateurLoyer(new AssemblageLoyer());
         Inscription inscriptions = new ServiceInscription(etudiants);
